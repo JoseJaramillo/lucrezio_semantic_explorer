@@ -109,7 +109,7 @@ int main(int argc, char **argv){
       marker_pub.publish(marker);
 
       //wait for the action server to return
-      bool finished_before_timeout = ac.waitForResult(ros::Duration(10.0));
+      bool finished_before_timeout = ac.waitForResult(ros::Duration(50.0)); //10.0
       if (finished_before_timeout){
         actionlib::SimpleClientGoalState state = ac.getState();
         ROS_INFO("Action finished: %s",state.toString().c_str());
@@ -247,12 +247,16 @@ void showOutput(const Eigen::Vector3f &position,
 move_base_msgs::MoveBaseGoal makeMoveBaseGoal(const Eigen::Vector2f & next_pose){
 
   move_base_msgs::MoveBaseGoal goal_msg;
-  goal_msg.target_pose.header.frame_id = "/map";
+  goal_msg.target_pose.header.frame_id = "map"; // / map
   goal_msg.target_pose.header.stamp = ros::Time::now();
 
   goal_msg.target_pose.pose.position.x = next_pose.x();
   goal_msg.target_pose.pose.position.y = next_pose.y();
   goal_msg.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+
+  std::cerr << "Move Base Goal: " << goal_msg.target_pose.pose.position.x << " ";
+  std::cerr << goal_msg.target_pose.pose.position.y << " ";
+  std::cerr << goal_msg.target_pose.pose.orientation << std::endl;
 
   return goal_msg;
 }

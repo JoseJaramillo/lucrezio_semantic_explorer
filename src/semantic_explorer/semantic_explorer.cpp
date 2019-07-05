@@ -1,5 +1,6 @@
 #include "semantic_explorer.h"
 
+
 void serializeRays(const Vector3fPairVector& rays, const std::string& filename);
 
 SemanticExplorer::SemanticExplorer(){
@@ -11,6 +12,7 @@ SemanticExplorer::SemanticExplorer(){
 }
 
 void SemanticExplorer::setObjects(const ObjectPtrVector& semantic_map){
+  _objects.clear();
   for(size_t i=0; i<semantic_map.size(); ++i){
     const ObjectPtr& o = semantic_map[i];
     const std::string& model = o->model();
@@ -29,10 +31,10 @@ void SemanticExplorer::setObjects(const ObjectPtrVector& semantic_map){
 
 bool SemanticExplorer::findNearestObject(ObjectPtr &nearest_object){
   float min_dist = std::numeric_limits<float>::max();
-  bool found=false;
-  for(StringObjectPtrMap::iterator it=_objects.begin(); it!=_objects.end(); ++it){
+  bool found=false; 
+  for(StringObjectPtrMap::iterator it=_objects.begin(); it!=_objects.end(); ++it){     //change to rbegin and rend
     const ObjectPtr& o = it->second;
-
+    
     //check if the object has been already processed
     StringVector::iterator itt = std::find (_processed.begin(),_processed.end(),o->model());
     if(itt!=_processed.end()){
@@ -49,6 +51,28 @@ bool SemanticExplorer::findNearestObject(ObjectPtr &nearest_object){
   }
   return found;
 }
+
+bool SemanticExplorer::findObject(const std::string objectName,ObjectPtr &nearest_object){
+  float min_dist = std::numeric_limits<float>::max();
+  bool found=false;
+  std::cerr << "Objects in SM:" << std::endl;//
+  for(StringObjectPtrMap::iterator it=_objects.begin(); it!=_objects.end(); ++it){
+    const ObjectPtr& o = it->second;
+
+    float dist=(o->position()-_camera_pose.translation()).norm();
+    if(o->model()==objectName){
+      nearest_object=o;
+      found= true;
+    }
+    /*DEBUG delete after*/
+
+    std::cerr << o->model() << "TimeStamp: " << o->ocupancy_volume() <<std::endl;
+
+  }
+  return found;
+}
+
+
 
 Isometry3fVector SemanticExplorer::generateCandidateViews(const ObjectPtr& nearest_object){
   if(!nearest_object)
@@ -81,21 +105,187 @@ Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& 
   Eigen::Vector3f squaredDistances;
   float OFFSET = 0.1;
   float CLEARANCE = 0.6;
-  Isometry3fVector candidate_views;
+  float X=0;
+  float Y=0;
+  float Z=0;
+
+  //--------------SECTION 3.2.1-----------------//
+  if(true){
+    if(nearest_object->model()=="fountain_park_1"){
+      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
+      float X=4;
+      float Y=4;
+      float Z=3;
+    }
+    else if(nearest_object->model()=="lamp_street_1"){
+      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
+      float X=0.3;
+      float Y=0.3;
+      float Z=3;
+
+    }
+    else if(nearest_object->model()=="statue_tall_1"){
+      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
+      float X=0.60;
+      float Y=0.60;
+      float Z=2.5;
+
+    }
+    else if(nearest_object->model()=="chair_park_1"){
+      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
+      float X=2;
+      float Y=1;
+      float Z=1.2;
+
+    }
+    else if(nearest_object->model()=="trashcan_park_1"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=0.60;
+      float Y=0.60;
+      float Z=0.80;
+
+    }
+    else if(nearest_object->model()=="sink"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=1.0;
+      float Y=1.0;
+      float Z=1.2;
+
+    }
+    else if(nearest_object->model()=="burner_stove"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=1.0;
+      float Y=1.0;
+      float Z=1.2;
+
+    }
+    else if(nearest_object->model()=="table_ikea_bjursta"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=1.5;
+      float Y=1.5;
+      float Z=1.2;
+
+    }
+    else if(nearest_object->model()=="chair_ikea_borje"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=0.60;
+      float Y=0.60;
+      float Z=1.5;
+
+    }
+    else if(nearest_object->model()=="couch"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=2.0;
+      float Y=1.0;
+      float Z=1.0;
+
+    }
+    else if(nearest_object->model()=="cabinet_ikea_malm_big"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=1.5;
+      float Y=1.0;
+      float Z=1.0;
+
+    }
+    else if(nearest_object->model()=="table_tv"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=1.2;
+      float Y=0.8;
+      float Z=0.80;
+
+    }
+    else if(nearest_object->model()=="tv_samsung"){
+      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
+      float X=1.0;
+      float Y=1.5;
+      float Z=1.0;
+
+    }
+
+    else{
+      std::cout << "chuckles, it is a car right? " << nearest_object->model() << std::endl;
+      X=4.6;
+      Y=1.9;
+      Z=1.7;
+}
+    float Dmin_1=(std::max(nearest_object->max().z(),Z)-1)/tan(0.524);
+    float Dmin_2=1/tan(0.524);
+    float Dmin=std::max(Dmin_1,Dmin_2);
+    CLEARANCE=std::min(Dmin,float(2.5));
+    std::cout << "So, I am intelligently fixing the distance at " << CLEARANCE << " because Dmin=" << Dmin << std::endl;
+  }
+  //--------------------------------------------// 
+    Isometry3fVector candidate_views;
   squaredDistances[0]=pow(nearest_object->position().x()-(nearest_object->max()[0]+OFFSET),2);
   squaredDistances[1]=pow(nearest_object->position().y()-(nearest_object->max()[1]+OFFSET),2);
-  float _radius=sqrt(squaredDistances[0]+squaredDistances[1])+CLEARANCE;
+  _radius=sqrt(squaredDistances[0]+squaredDistances[1])+CLEARANCE;
+  //--------------SECTION 3.2.2-----------------//
+  if(true){
+    octomap::point3d sensorOrigins(_camera_pose.translation()[0],_camera_pose.translation()[1],_camera_pose.translation()[2]);
 
-  for(int i=0; i<8; i++){
-    float alpha=i*(2*M_PI/((float)8));
-    float x=_radius*cos(alpha);
-    float y=_radius*sin(alpha);
-    float theta=atan2(-y,-x);
+    float alpha=atan2((nearest_object->position().y()-sensorOrigins.y()),(nearest_object->position().x()-sensorOrigins.x()));
 
-    Eigen::Isometry3f T = v2t(Eigen::Vector3f(nearest_object->position().x()+x,nearest_object->position().y()+y,theta));
+    squaredDistances[0]=pow(nearest_object->position().y()-sensorOrigins.y(),2);
+    squaredDistances[1]=pow(nearest_object->position().x()-sensorOrigins.x(),2);
+    float dp=sqrt(squaredDistances[0]+squaredDistances[1]);
+  
+    squaredDistances[0]=pow(nearest_object->position().y()-nearest_object->max().y(),2);
+    squaredDistances[1]=pow(nearest_object->position().x()-nearest_object->max().x(),2);
+    float malakies=sqrt(squaredDistances[0]+squaredDistances[1]);
+    
 
-    candidate_views.push_back(T);
+
+    float adjustedRadius=CLEARANCE+(std::max((std::max(X,Y)/2),malakies));
+    std::cout << "malakies: " << malakies << " max= " << (std::max(X,Y)/2) << std::endl;
+
+    float dis = adjustedRadius+dp-_radius; 
+    std::cout << "dis: " << dis << " adjustedRadius= " << adjustedRadius << std::endl;
+    std::cout << "_radius: " << _radius  << std::endl;
+    Eigen::Vector2f AproximatedCentroid;
+    if (dp>dis){
+      AproximatedCentroid.x()=sensorOrigins.x()+(dis*cos(alpha));
+      AproximatedCentroid.y()=sensorOrigins.y()+(dis*sin(alpha));
+    } else {
+      AproximatedCentroid.x()=nearest_object->position().x();
+      AproximatedCentroid.y()=nearest_object->position().y();
+
+    }
+
+
+
+    std::cout << "NEW CENTROID AT: " << AproximatedCentroid.x() << " - " << AproximatedCentroid.y() << std::endl;
+    for(int i=0; i<8; i++){
+      float alpha=i*(2*M_PI/((float)8));
+      float x=adjustedRadius*cos(alpha);
+      float y=adjustedRadius*sin(alpha);
+      float theta=atan2(-y,-x);
+
+      Eigen::Isometry3f T = v2t(Eigen::Vector3f(AproximatedCentroid.x()+x,AproximatedCentroid.y()+y,theta));
+
+      candidate_views.push_back(T);
+    }
   }
+  //--------------------------------------------//
+
+  else{
+
+    for(int i=0; i<8; i++){
+      float alpha=i*(2*M_PI/((float)8));
+      float x=_radius*cos(alpha);
+      float y=_radius*sin(alpha);
+      float theta=atan2(-y,-x);
+
+      Eigen::Isometry3f T = v2t(Eigen::Vector3f(nearest_object->position().x()+x,nearest_object->position().y()+y,theta));
+	std::cout << "NO HAY ERROR NO HAY ERROR, ESPAÑA TE ATACA! ";
+      candidate_views.push_back(T);
+    }
+  }
+
+
+
+
+
+
 
   return candidate_views;
 }
@@ -153,7 +343,7 @@ void SemanticExplorer::computeNBV(const Isometry3fVector& candidate_views, const
         if(nearest_object->octree()->computeRay(origin,dir,ray)){
           for(const octomap::point3d voxel : ray){
 
-            if(!nearest_object->inRange(voxel.x(),voxel.y(),voxel.z()))
+            if(!nearest_object->inRange(voxel.x(),voxel.y(),voxel.z(),0.0))
               continue;
 
             octomap::OcTreeNode* n = nearest_object->octree()->search(voxel);
@@ -189,15 +379,17 @@ void SemanticExplorer::computeNBV(const Isometry3fVector& candidate_views, const
   //  serializeRays(_rays,"rays.txt");
 }
 
-/*------------------------NBV_Jose------------------------*/
 
-std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candidate_views, const ObjectPtr& nearest_object, octomap::OcTree& unknown){
+
+/*------------------------NBV_Jose2------------------------*/
+
+std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candidate_views, ObjectPtr& nearest_object){
   if(candidate_views.empty())
     throw std::runtime_error("[SemanticExplorer][computeNBV_Jose]: no candidate views!");
 
   //clear queue
   _views = ScoredPoseQueue();
-
+  std::cerr << "[SemanticExplorer][computeNBV_Jose]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
   octomap::point3d sensorOrigin(_camera_pose.translation()[0],_camera_pose.translation()[1],_camera_pose.translation()[2]);
 
   //>>>>>>>>>> Get nearest_object info <<<<<<<<<<
@@ -210,210 +402,11 @@ std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candi
   pcl::compute3DCentroid(*cloud,centroid);
   std::cerr << "[SemanticExplorer][computeNBV_Jose]: centroid! "<<centroid(0)<<"  "<<centroid(1)<<"  "<<centroid(2)<< std::endl;
   float cloudCentroid[3]={centroid(0),centroid(1),centroid(2)}; //TODO use centroid and delete cloudCentroid
+  Eigen::Vector3f squaredDistances;
+  float distance;		//  Distance from the sensorOrigin and the new background point
+  octomap::point3d Point3dwall(1,0,0);    //  each point3d to be inserted into Pointwall
+  octomap::point3d iterator;      //  Helper needed for castRay function
 
-    //>>>>>>>>>> Create octree <<<<<<<<<<
-
-    /*  Two octrees are needed, "tree" will have all the information
-        needed for processing, "cloudAndUnknown" is a simplified OcTree
-        containing just the known occupied voxels and unknown voxels.   */
-
-    octomap::Pointcloud scan;       //  Pointcloud will hold the .pcd information
-    float MIN_RESOLUTION = 0.02;
-    octomap::OcTree tree (MIN_RESOLUTION),cloudAndUnknown (MIN_RESOLUTION), unknownCloud(MIN_RESOLUTION);
-
-    for (size_t i = 0; i < cloud->points.size (); ++i){     //  Iterate over the loaded .pcd file
-
-        //  Insert the .pcd cloud points into scan
-        scan.push_back(cloud->points[i].x
-                ,cloud->points[i].y
-                ,cloud->points[i].z);
-
-        //  Insert the .pcd cloud points into the octree cloudAndUnknown
-        octomap::OcTreeNode * cloudNode=cloudAndUnknown.updateNode(cloud->points[i].x
-                ,cloud->points[i].y
-                ,cloud->points[i].z,true);
-
-        /*  The number 13(random) is saved on each cloud voxel, so that when rayCast
-                finds the node I can check if ==13 I found an object voxel  */
-
-        cloudNode->setValue(13);
-
-    }
-
-    /*  InsertPointCloud automatically sets as unknown voxels, the ones behind scan when seeing from sensorOrigin
-            the algorithm will look for the unknown volxels which are necesary to compute the NBV. */
-
-    tree.insertPointCloud(scan,sensorOrigin);
-
-    //>>>>>>>>>> Create pointwall as Field of View of the camera <<<<<<<<<<
-
-    /*  Create point wall representing the Field of View of the camera so that raytracing is made
-            from the camera center towards each of its points.
-            Assuming camera center is in (0,0,0) and the camera direction is towards (1,0,0).
-            Kinect has a Field of View of (58.5 x 46.6 degrees) and a Resolution of (320 x 240 px).
-            Offline computation results in a pointwall from (1,-0.56,-0.431) to (1,0.56,0.431),
-            with 320 points along the Y axes (0.003489 distance between points),
-            with 240 points along the Z axes (0.003574 distance between points).    */
-
-    octomap::Pointcloud pointwall;      //  pointwall will represent the sensor FoV in origin coordinates.
-    octomap::Pointcloud pointwallOrigin;        //  pointwallOrigin will represent the sensor FoV in origin coordinates,
-                                                //      rolled to point towards the cloud centroid
-    octomap::Pointcloud pointwallSensor;        //  pointwallSensor will be translated to be in front of the sensor for visualization (check.bt)
-    octomap::point3d Point3dwall(1,0,0);    //  each point3d to be inserted into Pointwall
-
-    //  Iterate on each pixel (320x240)
-    for(int ii=1;ii<321;ii++){
-
-        for(int iii=1;iii<241;iii++){
-
-            Point3dwall.y()= (-0.560027)+(ii*0.003489);
-            Point3dwall.z()= (-0.430668)+(iii*0.003574);
-            pointwallOrigin.push_back(Point3dwall);
-
-        }
-
-    }
-
-    pointwall=pointwallOrigin;
-
-    /*  Rotate the pointwall to the camera origin and ortogonal to the vector pointing from
-            the camera origin to the centroid, translation is not needed since the function
-            castRay works with origin and direction(not end).   */
-
-    octomath::Vector3 Translation(0,0,0),T2(sensorOrigin);
-    float roll=atan2(-sensorOrigin.y()+centroid(1),-sensorOrigin.x()+centroid(0));
-
-    octomath::Quaternion Rotation(0,0,roll),R2(0,0,0);       // (Yaw,Pitch,Roll)
-    octomap::pose6d RotandTrans(Translation,Rotation),RT2(T2,R2);
-
-    pointwallOrigin.transform(RotandTrans);
-    pointwallSensor=pointwallOrigin;
-    pointwallSensor.transform(RT2);              //  For visualization PW is translated in front of the sensorOrigin
-    octomap::point3d iterator;      //  Helper needed for castRay function
-
-    //>>>>>>>>>> Create background wall to identify known empty volxels <<<<<<<<<<
-
-    /*	A background wall is built leaving empty the shadow of the object, this is
-            necesary so that the octree can recognize what area is empty known and
-            unknown, otherwise it will assume all tree.writeBinary("check.bt");surroundings of the cloud as unknown.  */
-
-    float alpha;	//	Angle in xy plane from sensorOrigin to each point in Pointwall
-    float beta;		//	Elevation angle from sensorOrigin to each point in Pointwall
-    float xp, yp, zp;		//	x,y,z coordinates of each point in Pointwall expressed in sensorOrigin coordinates
-    float legAdjacentPointWall;		//	Leg adjacent length of a right triangle formed from sensorOrigin to each point in Pointwall
-    float legAdjacentBackgroundPoint;		//	Leg adjacent length of a right triangle formed from sensorOrigin to the new background point
-    float distance;		//  Distance from the sensorOrigin and the new background point
-    octomap::Pointcloud backgroundWall;     //  Pointcloud holding the background wall
-
-    //  distance will be computed so that the wall is always behind the object
-    //  distance = 2D_Distance-Centroid-FarthermostPointInBBox + offset + 2D_Distance-sensorOrigin-Centroid 
-    float OFFSET=0.2;
-    Eigen::Vector3f squaredDistances;
-    squaredDistances[0]=pow(centroid(0)-(max[0]+OFFSET),2);
-    squaredDistances[1]=pow(centroid(1)-(max[1]+OFFSET),2);
-
-    distance=sqrt(squaredDistances[0]+squaredDistances[1]);
-
-    squaredDistances[0]=pow(centroid(0)-sensorOrigin.x(),2);
-    squaredDistances[1]=pow(centroid(1)-sensorOrigin.y(),2);
-
-    distance+=sqrt(squaredDistances[0]+squaredDistances[1]);
-
-    for(int i=0;i<pointwallOrigin.size();i++){
-
-        if(!tree.castRay(sensorOrigin,pointwallOrigin.getPoint(i),iterator)){
-
-            //	Transform pointwall point to sensorOrigin coordinates subtracting sensorOrigin
-            xp=-sensorOrigin.x()+pointwallSensor.getPoint(i).x();
-            yp=-sensorOrigin.y()+pointwallSensor.getPoint(i).y();
-            zp=-sensorOrigin.z()+pointwallSensor.getPoint(i).z();
-
-            //	Get alpha and beta angles
-            alpha=atan2(yp,xp);
-            legAdjacentPointWall=sqrt((xp*xp)+(yp*yp));
-            beta=atan2(zp,legAdjacentPointWall);
-
-            //	Get the new background points and return to global coordinates by adding sensorOrigin
-            iterator.z()=sensorOrigin.z()+distance*sin(beta);
-            legAdjacentBackgroundPoint=sqrt((distance*distance)-(zp*zp));
-            iterator.y()=sensorOrigin.y()+legAdjacentBackgroundPoint*sin(alpha);
-            iterator.x()=sensorOrigin.x()+legAdjacentBackgroundPoint*cos(alpha);
-
-            backgroundWall.push_back(iterator);		//	add points to point cloud
-
-        }
-
-    }
-
-    tree.insertPointCloud(backgroundWall,sensorOrigin);     //  Check if i can use other than scan, since it contains the cloud
-    //  tree.insertPointCloud(pointwallSensor,sensorOrigin);     //  PW inserted for visualizing the FoV from the sensorOrigin
-    //  tree.writeBinary("check.bt");       //  Visualize "check.bt" with octovis
-    bool searchOnlyInNewCloud=false;
-    if (unknown.getRoot()==NULL){
-      std::cerr << "[SemanticExplorer][computeNBV_Jose]: This is your first time, right? "<< std::endl;
-      searchOnlyInNewCloud=true;
-    } else {
-      std::cerr << "[SemanticExplorer][computeNBV_Jose]: This is NOT your first time, right? "<< std::endl; 
-      searchOnlyInNewCloud=false;
-    }
-    
-
-
-    //>>>>>>>>>> Search for unknown voxels <<<<<<<<<<
-
-    float RESOLUTION = MIN_RESOLUTION;		//	Search resolution
-    std::cerr << "[SemanticExplorer][computeNBV_Jose]: searching for unknown voxels... "<< std::endl;
-
-    //	Iterate over all the bounding box and search for unknown voxels
-    for (float ix = min[0]-OFFSET; ix < max[0]+OFFSET; ix += RESOLUTION){
-
-        for (float iy = min[1]-OFFSET; iy < max[1]+OFFSET; iy += RESOLUTION){
-
-            for (float iz = min[2]-OFFSET; iz < max[2]+OFFSET; iz += RESOLUTION){
-
-                if (searchOnlyInNewCloud && tree.search(ix,iy,iz)==NULL){		//	If ==NULL it did not find any known (occupied or empty) voxel
-
-                    //check if the unknown voxel was previously seen 
-                    //	Add a voxel in the empty position in the cloudAndUnknown OcTree
-                    iterator.x()=ix;
-                    iterator.y()=iy;
-                    iterator.z()=iz;
-                    
-                    octomap::OcTreeNode * unknownCloudnodes=cloudAndUnknown.updateNode(iterator,false);  //  Compose tree needed for NBV computation
-                    octomap::OcTreeNode * unknownCloudnodes2=unknownCloud.updateNode(iterator,false);
-                    /*  The number 24(random) is saved on each cloud voxel, so that when rayCast
-                            finds the node I can check if ==24 I found an unknown voxel */
-
-                    unknownCloudnodes->setValue(24);
-                    unknownCloudnodes2->setValue(25);
-
-                } 
-                else if (!searchOnlyInNewCloud && tree.search(ix,iy,iz)==NULL && !(unknown.search(ix,iy,iz)==NULL)) {
-                  
-                    //	Add a voxel in the empty position in the cloudAndUnknown OcTree
-                    iterator.x()=ix;
-                    iterator.y()=iy;
-                    iterator.z()=iz;
-                    
-                    octomap::OcTreeNode * unknownCloudnodes=cloudAndUnknown.updateNode(iterator,false);  //  Compose tree needed for NBV computation
-                    octomap::OcTreeNode * unknownCloudnodes2=unknownCloud.updateNode(iterator,false);
-                    /*  The number 24(random) is saved on each cloud voxel, so that when rayCast
-                            finds the node I can check if ==24 I found an unknown voxel */
-
-                    unknownCloudnodes->setValue(24);
-                    unknownCloudnodes2->setValue(25);
-                }
-                
-
-            }
-
-        }
-
-    }
-    unknown.swapContent(unknownCloud);
-
-    unknown.writeBinary("malaka_check_unknown.bt");       //  Visualize the pointcloud with the unknown voxels
-    //unknownCloud.writeBinary("chekmebaby.bt");
     //>>>>>>>>>> Compute Next Best View candidates <<<<<<<<<<
 
     /*  The candidates will be computed at a constant distance from the object, all the views
@@ -433,11 +426,16 @@ std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candi
     /*  raytrace from NBVcandidate position to each point in NBVpointwall,
             so this needs to be always behind the cloudAndUnknown voxels    */
 
-    squaredDistances[0]=pow(centroid(0)-(max[0]+OFFSET),2);
-    squaredDistances[1]=pow(centroid(1)-(max[1]+OFFSET),2);
-    float distanceNBV_centroid=sqrt(squaredDistances[0]+squaredDistances[1]);
-    distance=(distanceNBV_centroid*2);
+    squaredDistances[0]=pow(centroid(0)-(max[0]),2);
+    squaredDistances[1]=pow(centroid(1)-(max[1]),2);
+    float distance_centroid_furthermostpoint=sqrt(squaredDistances[0]+squaredDistances[1]);
+    const Eigen::Isometry3f& SOCLOSE = candidate_views[0];
+    squaredDistances[0]=pow(centroid(0)-SOCLOSE.translation().x(),2);
+    squaredDistances[1]=pow(centroid(1)-SOCLOSE.translation().x(),2);
+    float distance_NBV_Centroid=sqrt(squaredDistances[0]+squaredDistances[1]);
+    distance=(distance_centroid_furthermostpoint+distance_NBV_Centroid);
     Point3dwall.x()=distance;
+
 
     float yLimit = distance*tan(0.51051);
     float zLimit = distance*tan(0.40666);
@@ -457,6 +455,8 @@ std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candi
 
     }
     std::cerr << "[SemanticExplorer][computeNBV_Jose]: Raytracing... "<< std::endl;
+    clock_t tStart = clock();
+
     for(int i=0;i<candidate_views.size();i++){
         const Eigen::Isometry3f& T = candidate_views[i];
         /* 	The Pointcloud representing the FoV of the kinect is rotated and translated
@@ -469,51 +469,45 @@ std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candi
         Candidates[i][3]=T.linear().eulerAngles(0, 1, 2)[2];
         Candidates[i][4]=0;		//	Set 0 the candidates Occlussion Aware VI
         octomath::Vector3 Translation2(iterator.x(),iterator.y(),iterator.z());		//	Vector with the NBVcandidate coordinates
-        octomath::Quaternion Rotation2(0,0,Candidates[i][3]);		//	Quaternion containing the roll of NBVcandidate
+        octomath::Quaternion Rotation2(0,0,Candidates[i][3]);		//	Quaternion containing the yaw of NBVcandidate
         octomath::Pose6D RotandTrans2(Translation2,Rotation2);		//	Pose6D contains the pose (rotation and translation) of the NBVcandidate
         variablePointwall=NBVpointwall;		//	Reset variablePointwall
         variablePointwall.transform(RotandTrans2);		//	Change the pose of variablePointwall
-	
-	// VISUALIZE CANDIDATES AND FIELD OF VIEW
+
 
 	
 
         //  Occlussion Aware VI is used as method to compute "how good" is a candidate
         octomap::KeyRay rayBeam; 		//	Contains the position of each voxel in a ray
         int unknownVoxelsInRay=0;		//	Counter of unknown voxels found in a ray
+        
         for(int ii=0;ii<variablePointwall.size();ii++){		//	iterate over all the pointwall
-            bool Continue=true;		//	Boolean needed to stop searching when the ray hits a known occupied voxel
+          bool breaker=false;
+          //	Get the position of each voxel in a ray starting from NBVcandidate to each point in variablePointwall
+          nearest_object->octree()->computeRayKeys(iterator,variablePointwall.getPoint(ii),rayBeam);
+          //std::cout<< "Starting!";
+          for(octomap::OcTreeKey rayKey : rayBeam){
+            octomap::OcTreeNode* node = nearest_object->octree()->search(rayKey);
+            octomap::point3d keyCoordinate = nearest_object->octree()->keyToCoord(rayKey);
 
-            //	Get the position of each voxel in a ray starting from NBVcandidate to each point in variablePointwall
-            cloudAndUnknown.computeRayKeys(iterator,variablePointwall.getPoint(ii),rayBeam);
-            for(octomap::KeyRay::iterator it=rayBeam.begin(); it!=rayBeam.end() && Continue; it++){
-                octomap::OcTreeNode * node=cloudAndUnknown.search(*it);		//	return the voxel found in such position
-                if(node!=NULL){		//	when !=NULL, it found an unknown voxel or a known occupied voxel
+            if(node!=NULL){		//	when !=NULL, it found a free voxel or a known occupied voxel
 
-                    //	When found a known occupied voxel stop
-                    if (node->getValue()==13){
+              if (node->getOccupancy()>0.49 && node->hasChildren()){
+              break;
+              }
+      
 
-                        Continue=false;
-
-                    }
-
-                    /*	When found an unknown voxel it will add the probability of of being seen from the
-                            NBVcandidate position which is given by the P_OCCUPATION to the number of
-                            unknown voxels from NBVcandidate to that voxel. */
-
-                    else if(node->getValue()==24){
-
-                        unknownVoxelsInRay++;
-                        Candidates[i][4]+=pow(P_OCCUPATION,unknownVoxelsInRay);
-
-                    }
-
-                }
-
+            }else if(nearest_object->inRange(keyCoordinate.x(),keyCoordinate.y(),keyCoordinate.z(),0.1)){
+              unknownVoxelsInRay++;
+              Candidates[i][4]+=pow(P_OCCUPATION,unknownVoxelsInRay);
+              breaker=true;
+            }else if(breaker){
+              break;
             }
 
-            unknownVoxelsInRay=0;		//	set to 0 after it stops raytracing
-
+          }
+            
+          unknownVoxelsInRay=0;		//	set to 0 after it stops raytracing
         }
 
         std::cout<< std::endl<<"from (" << Candidates[i][0] << ") ("<< Candidates[i][1] << ") ("<< Candidates[i][2]<< ") Angle: "<< Candidates[i][3]<<" VI: "<<Candidates[i][4];
@@ -536,13 +530,13 @@ std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candi
         }
 
     }
-
+    std::cout<< std::endl<<"Elapsed time: " << (double)(clock() - tStart)/CLOCKS_PER_SEC<< std::endl;
     //	Print NBV
     std::cout<< std::endl<<"NEXT BEST VIEW IS (" << Candidates[iNBV][0] << ") ("<< Candidates[iNBV][1] << ") ("<< Candidates[iNBV][2]<<")"<< std::endl;
   return scored_candidate_poses;
 }
 
-/*-----------------------/NBV_Jose/-----------------------*/
+/*-----------------------/NBV_Jose2/-----------------------*/
 
 void SemanticExplorer::setProcessed(const ObjectPtr& nearest_object){
   if(!nearest_object)

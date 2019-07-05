@@ -34,14 +34,13 @@ int main(int argc, char **argv){
   ObjectPtrVector semantic_map;
 
   SemanticExplorer explorer;
-  int unn_threshold=100;
+  const int unn_threshold=1000;
   /*-------------------------*/
 
   Isometry3fVector candidate_views;
   std::vector<Isometry3fVector> candidate_views_list;
   std::vector<std::string> processed_objects_list;
   std::vector<int> scored_candidate_views;
-  octomap::OcTree unknown(0.02);
   std::vector<octomap::OcTree> unknown_octree_list;
 
   /*-------------------------*/
@@ -63,12 +62,14 @@ int main(int argc, char **argv){
       exit=true; //no more objects to process
       continue;
     }
-    std::cerr << "Processing: " << nearest_object->model() << std::endl;
-    
+    std::cerr << "AHHHHHHHHHHHHHHH!!! Processing: " << nearest_object->model() << std::endl;
+    std::cerr << "[1]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
     
     
     bool reconstructed=false;
     while(!reconstructed){
+
+      
       //listen robot pose
       if(!listenRobotPose(robot_pose))
         continue;
@@ -87,6 +88,19 @@ int main(int argc, char **argv){
         std::cerr << "Num models: " << num_models << std::endl;
         explorer.setObjects(semantic_map);
       }
+      
+      //retreive object from semantic mapper
+      explorer.setCameraPose(robot_pose*camera_offset);
+      explorer.setObjects(semantic_map);
+      std::cerr << "[2]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
+      if(!explorer.findObject(nearest_object->model(),nearest_object)){
+        ROS_INFO("[ERROR] Can't find object in the semantic mapper!");
+        exit=true; //ERROR
+        continue;
+      }
+
+      std::cerr << "Retreived! " << nearest_object->model() << std::endl;
+      std::cerr << "[3]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
       /*****************************/
       int object_number=0;
       auto pos = std::find(processed_objects_list.begin(),processed_objects_list.end(),nearest_object->model());
@@ -106,7 +120,8 @@ int main(int argc, char **argv){
      /*****************************/
       //compute NBV
       ROS_INFO("evaluate NBV candidates!");
-      scored_candidate_views = explorer.computeNBV_Jose(candidate_views,nearest_object, unknown);
+      std::cerr << "[4]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
+      scored_candidate_views = explorer.computeNBV_Jose(candidate_views,nearest_object);
       ScoredPoseQueue tmp_q = explorer.views();
       bool reached=false;
       while(!tmp_q.empty() && !reached){
@@ -123,7 +138,6 @@ int main(int argc, char **argv){
           reconstructed = true;
           ROS_INFO("%s: processed!",nearest_object->model().c_str());
           explorer.setProcessed(nearest_object);
-          unknown.clear();
           break;
           
         }
@@ -140,7 +154,7 @@ int main(int argc, char **argv){
         ac.sendGoal(goal);
 
         //wait for the action server to return
-        bool finished_before_timeout = ac.waitForResult(ros::Duration(30.0));
+        bool finished_before_timeout = ac.waitForResult(ros::Duration(60.0));
         if (finished_before_timeout){
           actionlib::SimpleClientGoalState state = ac.getState();
           ROS_INFO("Action finished: %s",state.toString().c_str());
@@ -163,7 +177,6 @@ int main(int argc, char **argv){
       }
       if(tmp_q.empty()){
         reconstructed = true;
-        unknown.clear();
         ROS_INFO("%s: processed!",nearest_object->model().c_str());
         explorer.setProcessed(nearest_object);
       }
@@ -226,6 +239,7 @@ bool receiveSemanticMap(int& num_models, ObjectPtrVector& semantic_map){
   }
 
   semantic_map.resize(num_models);
+  std::cerr << std::endl <<"DIRECTO DEL HORNO" <<std::endl; /*AHHHHHHHHHHHHHHHHHHHHHHHHHH*/
   for(int i=0; i<num_models; ++i){
     const lucrezio_semantic_mapper::Object &o = semantic_map_msg_ptr->objects[i];
     semantic_map[i] = new Object(o.type,
@@ -237,6 +251,29 @@ bool receiveSemanticMap(int& num_models, ObjectPtrVector& semantic_map){
                                  o.octree_filename,
                                  o.fre_voxel_cloud_filename,
                                  o.occ_voxel_cloud_filename);
+  
+    /*semantic_map[i]= new Object(o.type,
+                                 Eigen::Vector3f(o.position.x,o.position.y,o.position.z),
+                                 Eigen::Vector3f(o.min.x,o.min.y,o.min.z),
+                                 Eigen::Vector3f(o.max.x,o.max.y,o.max.z),
+                                 Eigen::Vector3f(o.color.x,o.color.y,o.color.z),
+                                 o.cloud(),
+                                 o.octree(),
+                                 );*/
+    
+    /*semantic_map[i]= new Object(o.type,
+                                Eigen::Vector3f(o.position.x,o.position.y,o.position.z),
+                                Eigen::Vector3f(o.min.x,o.min.y,o.min.z),
+                                Eigen::Vector3f(o.max.x,o.max.y,o.max.z),
+                                Eigen::Vector3f(o.color.x,o.color.y,o.color.z),
+                                o.cloud(),
+                                o.octree(),
+                                o.freVoxelCloud(),
+                                o.occVoxelCloud(),
+                                o.ocupancy_volume()
+                                );*/
+
+    std::cerr << semantic_map[i]->model() << " TIMESTAMP: " << semantic_map[i]->ocupancy_volume() << std::endl; /*AHHHHHHHHHHHHHHHHHHHHHHHHHH*/
   }
   return true;
 }
@@ -244,12 +281,12 @@ bool receiveSemanticMap(int& num_models, ObjectPtrVector& semantic_map){
 move_base_msgs::MoveBaseGoal makeMoveBaseGoal(const Eigen::Vector3f & next_pose){
 
   move_base_msgs::MoveBaseGoal goal_msg;
-  goal_msg.target_pose.header.frame_id = "/map";
+  goal_msg.target_pose.header.frame_id = "map";   // /map
   goal_msg.target_pose.header.stamp = ros::Time::now();
 
   goal_msg.target_pose.pose.position.x = next_pose.x();
   goal_msg.target_pose.pose.position.y = next_pose.y();
-  goal_msg.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_pose.z());
+  goal_msg.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(next_pose.z()); // (next_pose.z())
 
   std::cerr << "Move Base Goal: " << goal_msg.target_pose.pose.position.x << " ";
   std::cerr << goal_msg.target_pose.pose.position.y << " ";

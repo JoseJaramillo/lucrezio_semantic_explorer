@@ -1,6 +1,7 @@
 #pragma once
 #include <queue>
 #include <semantic_mapper/object.h>
+#include <time.h>
 
 typedef std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > Vector3fVector;
 typedef std::vector<Eigen::Isometry3f, Eigen::aligned_allocator<Eigen::Isometry3f> > Isometry3fVector;
@@ -30,11 +31,12 @@ public:
   void setObjects(const ObjectPtrVector& semantic_map);
 
   bool findNearestObject(ObjectPtr& nearest_object);
+  bool findObject(const std::string objectName,ObjectPtr &nearest_object);
 
   Isometry3fVector generateCandidateViews(const ObjectPtr& nearest_object);
   Isometry3fVector generateCandidateViews_Jose(const ObjectPtr& nearest_object);
   void computeNBV(const Isometry3fVector& candidate_views, const ObjectPtr& nearest_object);
-  std::vector<int> computeNBV_Jose(const Isometry3fVector& candidate_views, const ObjectPtr& nearest_object, octomap::OcTree& unknown);
+  std::vector<int> computeNBV_Jose(const Isometry3fVector& candidate_views, ObjectPtr& nearest_object);
   void setProcessed(const ObjectPtr& nearest_object);
 
   inline const Vector3fPairVector& rays() const {return _rays;}
