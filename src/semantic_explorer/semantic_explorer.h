@@ -34,7 +34,7 @@ public:
   bool findObject(const std::string objectName,ObjectPtr &nearest_object);
 
   Isometry3fVector generateCandidateViews(const ObjectPtr& nearest_object);
-  Isometry3fVector generateCandidateViews_Jose(const ObjectPtr& nearest_object);
+  Isometry3fVector generateCandidateViews_Jose(const ObjectPtr& nearest_object, const bool S_AvE);
   void computeNBV(const Isometry3fVector& candidate_views, const ObjectPtr& nearest_object);
   std::vector<int> computeNBV_Jose(const Isometry3fVector& candidate_views, ObjectPtr& nearest_object);
   void setProcessed(const ObjectPtr& nearest_object);

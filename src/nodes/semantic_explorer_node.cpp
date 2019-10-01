@@ -35,6 +35,7 @@ int main(int argc, char **argv){
 
   SemanticExplorer explorer;
   const int unn_threshold=1000;
+  int current_views = 0;
   /*-------------------------*/
 
   Isometry3fVector candidate_views;
@@ -62,8 +63,7 @@ int main(int argc, char **argv){
       exit=true; //no more objects to process
       continue;
     }
-    std::cerr << "AHHHHHHHHHHHHHHH!!! Processing: " << nearest_object->model() << std::endl;
-    std::cerr << "[1]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
+    std::cerr << "Processing: " << nearest_object->model() << std::endl;
     
     
     bool reconstructed=false;
@@ -75,8 +75,8 @@ int main(int argc, char **argv){
         continue;
       else{
         ROS_INFO("Received robot pose!");
-        std::cerr << "Position: " << robot_pose.translation().head(2).transpose() << std::endl;
-        std::cerr << "Orientation: " << robot_pose.linear().eulerAngles(0,1,2).z() << std::endl;
+        // std::cerr << "Position: " << robot_pose.translation().head(2).transpose() << std::endl;
+        // std::cerr << "Orientation: " << robot_pose.linear().eulerAngles(0,1,2).z() << std::endl;
         explorer.setCameraPose(robot_pose*camera_offset);
       }
 
@@ -92,7 +92,6 @@ int main(int argc, char **argv){
       //retreive object from semantic mapper
       explorer.setCameraPose(robot_pose*camera_offset);
       explorer.setObjects(semantic_map);
-      std::cerr << "[2]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
       if(!explorer.findObject(nearest_object->model(),nearest_object)){
         ROS_INFO("[ERROR] Can't find object in the semantic mapper!");
         exit=true; //ERROR
@@ -100,10 +99,12 @@ int main(int argc, char **argv){
       }
 
       std::cerr << "Retreived! " << nearest_object->model() << std::endl;
-      std::cerr << "[3]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
       /*****************************/
       int object_number=0;
       auto pos = std::find(processed_objects_list.begin(),processed_objects_list.end(),nearest_object->model());
+
+      //  Check if we already have the candidates of this object (useful for more than one view of the same object)
+
       if (pos != processed_objects_list.end()){
         object_number = std::distance(processed_objects_list.begin(), pos);
         std::cerr << "Model " << nearest_object->model() << "previously processed, stored in " << object_number <<std::endl;
@@ -112,19 +113,20 @@ int main(int argc, char **argv){
       } else { 
         std::cerr << "First time running the model" << nearest_object->model() << "generating CandidateViews... " << std::endl;
         //generate candidate views
-        candidate_views = explorer.generateCandidateViews_Jose(nearest_object);
+        candidate_views = explorer.generateCandidateViews_Jose(nearest_object, true); // true: use S-AvE, false: use AvE
         candidate_views_list.push_back(candidate_views);
         processed_objects_list.push_back(nearest_object->model());
-        std::cerr << "storing object in: " << processed_objects_list.size()-1 << " and candidates in " << candidate_views_list.size()-1 << std::endl;
+	      current_views = 0;
       }
+
      /*****************************/
       //compute NBV
       ROS_INFO("evaluate NBV candidates!");
-      std::cerr << "[4]: OBJECT TIMESTAMP: " << nearest_object->ocupancy_volume() << std::endl;
-      scored_candidate_views = explorer.computeNBV_Jose(candidate_views,nearest_object);
+      scored_candidate_views = explorer.computeNBV_Jose(candidate_views,nearest_object); // Use active vision to evaluate the candidates
       ScoredPoseQueue tmp_q = explorer.views();
+
       bool reached=false;
-      while(!tmp_q.empty() && !reached){
+      while(!tmp_q.empty() && !reached && current_views<1){
 
         //current NBV
         ScoredPose view = tmp_q.top();
@@ -155,27 +157,35 @@ int main(int argc, char **argv){
 
         //wait for the action server to return
         bool finished_before_timeout = ac.waitForResult(ros::Duration(60.0));
-        if (finished_before_timeout){
+        if (true){
           actionlib::SimpleClientGoalState state = ac.getState();
           ROS_INFO("Action finished: %s",state.toString().c_str());
           auto pos = std::find(scored_candidate_views.begin(),scored_candidate_views.end(),unn);
+          
           if (pos != scored_candidate_views.end()){
+
             int index = std::distance(scored_candidate_views.begin(), pos);
-            std::cerr<< "Viewscore found, we are deleting the view: " << index << std::endl;
+            
             scored_candidate_views.erase(scored_candidate_views.begin() + index);
+
             candidate_views_list[object_number].erase(candidate_views_list[object_number].begin() + index);
+            
           } else {
-            ROS_INFO("Something went wrong... again.");
+            ROS_INFO("[ERROR][Semantic_explorer_node]");
           }
 
-          if(state.toString() == "SUCCEEDED")
+          if(state.toString() == "SUCCEEDED"){
             reached=true;
-          if(state.toString() == "ABORTED")
-            tmp_q.pop();
+	          current_views++;
+	          std::cerr << "VIEWS COUNTER = " << current_views << std::endl;
+	        }
+          if(state.toString() == "ABORTED"){
+            //tmp_q.pop();
+          }
         }
         tmp_q.pop();
       }
-      if(tmp_q.empty()){
+      if(tmp_q.empty() || current_views==1){
         reconstructed = true;
         ROS_INFO("%s: processed!",nearest_object->model().c_str());
         explorer.setProcessed(nearest_object);
@@ -239,7 +249,6 @@ bool receiveSemanticMap(int& num_models, ObjectPtrVector& semantic_map){
   }
 
   semantic_map.resize(num_models);
-  std::cerr << std::endl <<"DIRECTO DEL HORNO" <<std::endl; /*AHHHHHHHHHHHHHHHHHHHHHHHHHH*/
   for(int i=0; i<num_models; ++i){
     const lucrezio_semantic_mapper::Object &o = semantic_map_msg_ptr->objects[i];
     semantic_map[i] = new Object(o.type,
@@ -273,7 +282,6 @@ bool receiveSemanticMap(int& num_models, ObjectPtrVector& semantic_map){
                                 o.ocupancy_volume()
                                 );*/
 
-    std::cerr << semantic_map[i]->model() << " TIMESTAMP: " << semantic_map[i]->ocupancy_volume() << std::endl; /*AHHHHHHHHHHHHHHHHHHHHHHHHHH*/
   }
   return true;
 }
@@ -290,7 +298,7 @@ move_base_msgs::MoveBaseGoal makeMoveBaseGoal(const Eigen::Vector3f & next_pose)
 
   std::cerr << "Move Base Goal: " << goal_msg.target_pose.pose.position.x << " ";
   std::cerr << goal_msg.target_pose.pose.position.y << " ";
-  std::cerr << goal_msg.target_pose.pose.orientation << std::endl;
+  std::cerr << "[]" << goal_msg.target_pose.pose.orientation << "[]" << std::endl;
 
   return goal_msg;
 }

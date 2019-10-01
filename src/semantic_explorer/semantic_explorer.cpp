@@ -1,4 +1,5 @@
 #include "semantic_explorer.h"
+#include "json/json.h"
 
 
 void serializeRays(const Vector3fPairVector& rays, const std::string& filename);
@@ -85,10 +86,6 @@ Isometry3fVector SemanticExplorer::generateCandidateViews(const ObjectPtr& neare
     float y=_radius*sin(alpha);
     float theta=atan2(-y,-x);
 
-//    Eigen::Isometry3f T=Eigen::Isometry3f::Identity();
-//    T.translation() = Eigen::Vector3f(nearest_object->position().x()+x,nearest_object->position().y()+y,0.6);
-//    T.linear() = Eigen::AngleAxisf(theta,Eigen::Vector3f::UnitZ()).matrix();
-
     Eigen::Isometry3f T = v2t(Eigen::Vector3f(nearest_object->position().x()+x,nearest_object->position().y()+y,theta));
 
     candidate_views.push_back(T);
@@ -97,130 +94,63 @@ Isometry3fVector SemanticExplorer::generateCandidateViews(const ObjectPtr& neare
   return candidate_views;
 }
 
-Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& nearest_object){
+Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& nearest_object ,const bool S_AvE){
   if(!nearest_object){
     throw std::runtime_error("[SemanticExplorer][computePoses]: no nearest object!");
   }
   
   Eigen::Vector3f squaredDistances;
   float OFFSET = 0.1;
-  float CLEARANCE = 0.6;
-  float X=0;
-  float Y=0;
-  float Z=0;
+  float CLEARANCE = 0.6; 
+  float typical_X=0.0;
+  float typical_Y=0.0;
+  float typical_Z=0.0;
+  Json::Value objects;
+  std::string object_name;
 
-  //--------------SECTION 3.2.1-----------------//
-  if(true){
-    if(nearest_object->model()=="fountain_park_1"){
-      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
-      float X=4;
-      float Y=4;
-      float Z=3;
+  //--------------- Semantic - Active vision Exploration (fix radius) ----------------//
+  if(S_AvE){
+    //  Read JSON database
+    std::ifstream objects_file(PATH_TO_JSON, std::ifstream::binary);
+    objects_file >> objects;
+
+    //  Iterate over the database to find object
+    for (auto it = objects.begin(); it != objects.end(); ++it){
+     
+      object_name = (*it)["name"].asString().c_str();
+      if(!nearest_object->model().find(object_name)){
+        std::cout << "Model: " << nearest_object->model() << ", found on Database as: " << object_name << std::endl;
+        std::cout << "X " << (*it)["X"].asString().c_str() << std::endl;
+        std::cout << "Y " << (*it)["Y"].asString().c_str() << std::endl;
+        std::cout << "Z " << (*it)["Z"].asString().c_str() << std::endl;
+        typical_X= atof ((*it)["X"].asString().c_str());
+        typical_Y= atof ((*it)["Y"].asString().c_str());
+        typical_Z= atof ((*it)["Z"].asString().c_str());
+        break;
+      }
     }
-    else if(nearest_object->model()=="lamp_street_1"){
-      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
-      float X=0.3;
-      float Y=0.3;
-      float Z=3;
-
-    }
-    else if(nearest_object->model()=="statue_tall_1"){
-      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
-      float X=0.60;
-      float Y=0.60;
-      float Z=2.5;
-
-    }
-    else if(nearest_object->model()=="chair_park_1"){
-      std::cout << "chuckles i'm in danger " << nearest_object->model() << std::endl;
-      float X=2;
-      float Y=1;
-      float Z=1.2;
-
-    }
-    else if(nearest_object->model()=="trashcan_park_1"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=0.60;
-      float Y=0.60;
-      float Z=0.80;
-
-    }
-    else if(nearest_object->model()=="sink"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=1.0;
-      float Y=1.0;
-      float Z=1.2;
-
-    }
-    else if(nearest_object->model()=="burner_stove"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=1.0;
-      float Y=1.0;
-      float Z=1.2;
-
-    }
-    else if(nearest_object->model()=="table_ikea_bjursta"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=1.5;
-      float Y=1.5;
-      float Z=1.2;
-
-    }
-    else if(nearest_object->model()=="chair_ikea_borje"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=0.60;
-      float Y=0.60;
-      float Z=1.5;
-
-    }
-    else if(nearest_object->model()=="couch"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=2.0;
-      float Y=1.0;
-      float Z=1.0;
-
-    }
-    else if(nearest_object->model()=="cabinet_ikea_malm_big"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=1.5;
-      float Y=1.0;
-      float Z=1.0;
-
-    }
-    else if(nearest_object->model()=="table_tv"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=1.2;
-      float Y=0.8;
-      float Z=0.80;
-
-    }
-    else if(nearest_object->model()=="tv_samsung"){
-      std::cout << "chuckles, i'm in danger " << nearest_object->model() << std::endl;
-      float X=1.0;
-      float Y=1.5;
-      float Z=1.0;
-
+    if (typical_X==typical_Y==typical_Z==0.0){
+      std::cout << "[ERROR]: object did not found on database";
     }
 
-    else{
-      std::cout << "chuckles, it is a car right? " << nearest_object->model() << std::endl;
-      X=4.6;
-      Y=1.9;
-      Z=1.7;
-}
-    float Dmin_1=(std::max(nearest_object->max().z(),Z)-1)/tan(0.524);
+    //  
+
+    float Dmin_1=(std::max(nearest_object->max().z(),typical_Z)-1)/tan(0.524);
     float Dmin_2=1/tan(0.524);
     float Dmin=std::max(Dmin_1,Dmin_2);
     CLEARANCE=std::min(Dmin,float(2.5));
-    std::cout << "So, I am intelligently fixing the distance at " << CLEARANCE << " because Dmin=" << Dmin << std::endl;
   }
-  //--------------------------------------------// 
-    Isometry3fVector candidate_views;
+  //--------------------------------------------------------------------------------// 
+
+
+  Isometry3fVector candidate_views;
   squaredDistances[0]=pow(nearest_object->position().x()-(nearest_object->max()[0]+OFFSET),2);
   squaredDistances[1]=pow(nearest_object->position().y()-(nearest_object->max()[1]+OFFSET),2);
   _radius=sqrt(squaredDistances[0]+squaredDistances[1])+CLEARANCE;
-  //--------------SECTION 3.2.2-----------------//
-  if(true){
+
+
+  //--------------Semantic - Active vision Exploration (fix center) ----------------//
+  if(S_AvE){
     octomap::point3d sensorOrigins(_camera_pose.translation()[0],_camera_pose.translation()[1],_camera_pose.translation()[2]);
 
     float alpha=atan2((nearest_object->position().y()-sensorOrigins.y()),(nearest_object->position().x()-sensorOrigins.x()));
@@ -231,12 +161,11 @@ Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& 
   
     squaredDistances[0]=pow(nearest_object->position().y()-nearest_object->max().y(),2);
     squaredDistances[1]=pow(nearest_object->position().x()-nearest_object->max().x(),2);
-    float malakies=sqrt(squaredDistances[0]+squaredDistances[1]);
+    float radius_prime=sqrt(squaredDistances[0]+squaredDistances[1]);
     
 
 
-    float adjustedRadius=CLEARANCE+(std::max((std::max(X,Y)/2),malakies));
-    std::cout << "malakies: " << malakies << " max= " << (std::max(X,Y)/2) << std::endl;
+    float adjustedRadius=CLEARANCE+(std::max((std::max(typical_X,typical_Y)/2),radius_prime));
 
     float dis = adjustedRadius+dp-_radius; 
     std::cout << "dis: " << dis << " adjustedRadius= " << adjustedRadius << std::endl;
@@ -245,15 +174,15 @@ Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& 
     if (dp>dis){
       AproximatedCentroid.x()=sensorOrigins.x()+(dis*cos(alpha));
       AproximatedCentroid.y()=sensorOrigins.y()+(dis*sin(alpha));
+      std::cout << "[INFO] NEW CENTROID AT: " << AproximatedCentroid.x() << " - " << AproximatedCentroid.y() << std::endl;
+      std::cout << "[INFO] OLD CENTROID AT: " << nearest_object->position().x() << " - " << nearest_object->position().y() << std::endl;
     } else {
       AproximatedCentroid.x()=nearest_object->position().x();
       AproximatedCentroid.y()=nearest_object->position().y();
-
+      std::cout << "[INFO] NOT CHANGE IN CENTROID AT: " << nearest_object->position().x() << " - " << nearest_object->position().y() << std::endl;
     }
 
 
-
-    std::cout << "NEW CENTROID AT: " << AproximatedCentroid.x() << " - " << AproximatedCentroid.y() << std::endl;
     for(int i=0; i<8; i++){
       float alpha=i*(2*M_PI/((float)8));
       float x=adjustedRadius*cos(alpha);
@@ -265,7 +194,7 @@ Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& 
       candidate_views.push_back(T);
     }
   }
-  //--------------------------------------------//
+  //-----------------------------------------------------------------------------------//
 
   else{
 
@@ -276,16 +205,9 @@ Isometry3fVector SemanticExplorer::generateCandidateViews_Jose(const ObjectPtr& 
       float theta=atan2(-y,-x);
 
       Eigen::Isometry3f T = v2t(Eigen::Vector3f(nearest_object->position().x()+x,nearest_object->position().y()+y,theta));
-	std::cout << "NO HAY ERROR NO HAY ERROR, ESPAÑA TE ATACA! ";
       candidate_views.push_back(T);
     }
   }
-
-
-
-
-
-
 
   return candidate_views;
 }
@@ -371,17 +293,11 @@ void SemanticExplorer::computeNBV(const Isometry3fVector& candidate_views, const
     _views.push(view);
     rays.clear();
   }
-
-  //  std::cerr << "Nearest object occ voxels: " << _nearest_object->occVoxelCloud()->size() << std::endl;
-  //  std::cerr << "Nearest object fre voxels: " << _nearest_object->freVoxelCloud()->size() << std::endl;
-  //  pcl::io::savePCDFileASCII("occ_cloud.pcd", *_nearest_object->occVoxelCloud());
-  //  pcl::io::savePCDFileASCII("fre_cloud.pcd", *_nearest_object->freVoxelCloud());
-  //  serializeRays(_rays,"rays.txt");
 }
 
 
 
-/*------------------------NBV_Jose2------------------------*/
+/*------------------------ Occlusion Aware Volumentric Information ------------------------*/
 
 std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candidate_views, ObjectPtr& nearest_object){
   if(candidate_views.empty())
@@ -536,7 +452,7 @@ std::vector<int> SemanticExplorer::computeNBV_Jose(const Isometry3fVector& candi
   return scored_candidate_poses;
 }
 
-/*-----------------------/NBV_Jose2/-----------------------*/
+/*------------------------ ------------------------------------- ------------------------*/
 
 void SemanticExplorer::setProcessed(const ObjectPtr& nearest_object){
   if(!nearest_object)
